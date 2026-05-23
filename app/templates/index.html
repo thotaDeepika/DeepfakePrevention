@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SafeUpload — AI Identity Cloaking</title>
+<style>
+/* ── Reset ──────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0f1a;--surface:#111827;--surface2:#1a2235;--surface3:#222d42;
+  --border:#2a3655;--border2:#3a4a6b;
+  --blue:#3b82f6;--blue2:#60a5fa;--blue-dim:rgba(59,130,246,.12);
+  --purple:#8b5cf6;--purple-dim:rgba(139,92,246,.12);
+  --green:#22c55e;--green-dim:rgba(34,197,94,.12);
+  --amber:#f59e0b;--red:#ef4444;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --r:10px;--r-sm:6px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;
+  font-size:15px;line-height:1.6;min-height:100vh}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+header{
+  background:linear-gradient(180deg,#111827 0%,#0b0f1a 100%);
+  border-bottom:1px solid var(--border);
+  padding:36px 24px 32px;text-align:center;
+}
+.badge{display:inline-block;background:var(--blue-dim);border:1px solid
+  rgba(59,130,246,.3);color:var(--blue2);font-size:11px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;padding:4px 14px;
+  border-radius:99px;margin-bottom:16px}
+header h1{font-size:2.8rem;font-weight:900;letter-spacing:-.5px;
+  background:linear-gradient(135deg,var(--blue2),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:10px}
+header .sub{color:var(--muted2);font-size:1rem;max-width:580px;margin:0 auto 20px}
+.claim{display:inline-block;background:var(--green-dim);border:1px solid
+  rgba(34,197,94,.25);color:var(--green);padding:7px 18px;border-radius:99px;
+  font-size:13px;font-style:italic}
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+main{max-width:1060px;margin:0 auto;padding:36px 18px 80px}
+
+/* ── Card ───────────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:26px 28px;margin-bottom:24px}
+.card-head{font-size:1rem;font-weight:700;margin-bottom:18px;
+  display:flex;align-items:center;gap:10px}
+.step{width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;color:#fff}
+
+/* ── Drop zone ──────────────────────────────────────────────────── */
+#drop{border:2px dashed var(--border2);border-radius:var(--r);
+  padding:54px 24px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;position:relative}
+#drop:hover,#drop.over{border-color:var(--blue);background:var(--blue-dim)}
+#drop .ico{font-size:3rem;margin-bottom:12px}
+#drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+#drop .hint{color:var(--muted);font-size:.88rem;margin-top:6px}
+#drop .drag-lbl{font-size:1rem;font-weight:600;color:var(--muted2)}
+
+/* ── Preview ─────────────────────────────────────────────────────── */
+#prev-wrap{display:none;margin-top:18px;text-align:center}
+#prev-img{max-height:260px;max-width:100%;border-radius:var(--r-sm);
+  border:1px solid var(--border);object-fit:contain}
+#prev-name{color:var(--muted);font-size:.82rem;margin-top:7px}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 26px;
+  border-radius:var(--r-sm);font-size:.95rem;font-weight:700;border:none;
+  cursor:pointer;transition:all .18s;letter-spacing:.02em}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px);box-shadow:0 8px 24px rgba(59,130,246,.3)}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{opacity:.88}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--blue)}
+#protect-btn{width:100%;justify-content:center;margin-top:20px;font-size:1.05rem;padding:14px}
+
+/* ── Error ───────────────────────────────────────────────────────── */
+#err{display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
+  border-radius:var(--r-sm);padding:12px 16px;color:#fca5a5;
+  font-size:.9rem;margin-top:14px}
+
+/* ── Progress ────────────────────────────────────────────────────── */
+#prog-wrap{display:none;margin-top:22px}
+.prog-bg{background:var(--surface2);border-radius:99px;height:6px;overflow:hidden;margin-bottom:10px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));
+  border-radius:99px;width:0%;transition:width .5s ease}
+#prog-label{color:var(--muted2);font-size:.88rem;text-align:center}
+.prog-steps{display:flex;gap:0;margin-bottom:10px;border-radius:99px;overflow:hidden;border:1px solid var(--border)}
+.prog-step{flex:1;height:4px;background:var(--surface3)}
+.prog-step.done{background:var(--green)}
+.prog-step.active{background:var(--blue);animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── Results ─────────────────────────────────────────────────────── */
+#results{display:none}
+
+/* ── Comparison ──────────────────────────────────────────────────── */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.cmp-grid{grid-template-columns:1fr}}
+.img-panel{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden}
+.img-panel-hd{padding:10px 16px;font-weight:700;font-size:.88rem;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.dot-b{background:var(--blue)}
+.dot-p{background:var(--purple)}
+.img-panel img{width:100%;display:block;max-height:380px;
+  object-fit:contain;background:#000;cursor:zoom-in}
+.img-panel-ft{padding:8px 16px;font-size:.8rem;color:var(--muted);
+  border-top:1px solid var(--border)}
+
+/* ── Metrics ─────────────────────────────────────────────────────── */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.metric-card{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px 18px}
+.mc-model{font-size:.75rem;font-weight:800;color:var(--blue2);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.mc-row{display:flex;justify-content:space-between;font-size:.84rem;margin-bottom:6px}
+.mc-lbl{color:var(--muted)}
+.mc-val{font-weight:700}
+.good{color:var(--green)}.medium{color:var(--amber)}.bad{color:var(--red)}
+.red-bar-bg{background:var(--border);border-radius:99px;height:5px;margin-top:10px}
+.red-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--green));
+  border-radius:99px;transition:width 1.2s ease}
+
+/* ── Summary banner ──────────────────────────────────────────────── */
+.summary-banner{background:linear-gradient(135deg,var(--blue-dim),var(--purple-dim));
+  border:1px solid rgba(99,102,241,.3);border-radius:var(--r);
+  padding:16px 22px;margin-bottom:20px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.banner-stat{text-align:center;min-width:100px}
+.banner-stat .big{font-size:1.8rem;font-weight:900;
+  background:linear-gradient(135deg,var(--blue2),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.banner-stat .lbl{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.banner-divider{width:1px;height:40px;background:var(--border);align-self:center}
+.banner-claim{flex:1;min-width:200px;font-size:.9rem;color:var(--muted2);font-style:italic}
+
+/* ── Quality pills ───────────────────────────────────────────────── */
+.q-pills{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.pill{padding:4px 14px;border-radius:99px;font-size:.82rem;font-weight:700}
+.pill-g{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.pill-a{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+
+/* ── Download row ────────────────────────────────────────────────── */
+.dl-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+
+/* ── Gemini ──────────────────────────────────────────────────────── */
+.g-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+#gkey{flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:10px 14px;color:var(--text);
+  font-size:.9rem;outline:none}
+#gkey:focus{border-color:var(--blue)}
+#gkey::placeholder{color:var(--muted)}
+#gresult{display:none;margin-top:14px}
+.g-box{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:14px;font-size:.85rem;
+  white-space:pre-wrap;max-height:240px;overflow-y:auto;color:var(--muted2)}
+
+/* ── Info box ────────────────────────────────────────────────────── */
+.info{background:var(--blue-dim);border:1px solid rgba(59,130,246,.2);
+  border-radius:var(--r-sm);padding:12px 16px;font-size:.88rem;
+  color:#93c5fd;margin-bottom:22px}
+.info strong{color:var(--blue2)}
+
+/* ── Lightbox ────────────────────────────────────────────────────── */
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
+  z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
+#lb.show{display:flex}
+#lb img{max-width:92vw;max-height:92vh;border-radius:var(--r);
+  box-shadow:0 32px 80px rgba(0,0,0,.8)}
+
+/* ── Footer ──────────────────────────────────────────────────────── */
+footer{text-align:center;color:var(--muted);font-size:.8rem;
+  border-top:1px solid var(--border);padding:22px}
+</style>
+</head>
+<body>
+
+<!-- ── Lightbox ─────────────────────────────────────────────────── -->
+<div id="lb" onclick="this.classList.remove('show')">
+  <img id="lb-img" src="" alt="full view"/>
+</div>
+
+<!-- ── Header ───────────────────────────────────────────────────── -->
+<header>
+  <div class="badge">Research Prototype · Defensive Privacy Tool</div>
+  <h1>🔒 SafeUpload</h1>
+  <p class="sub">MCA-based transferable adversarial identity cloaking across FaceNet · ArcFace · CLIP ViT-B/16 · CLIP ViT-L/14</p>
+  <div class="claim">"Humans still recognise the person — AI identity representations become unstable"</div>
+</header>
+
+<!-- ── Main ─────────────────────────────────────────────────────── -->
+<main>
+
+<div class="info">
+  <strong>How it works:</strong> MTCNN detects the face, expands the bounding box by 12% to include hairline and jawline context, then runs the <strong>MCA adversarial cloaking attack</strong> (ε = 8/255, K=8 crops, 50 Adam steps, 4-model ensemble). The protected face is Poisson-blended seamlessly back into your full image. The output looks identical to humans but fools AI embedding models.
+</div>
+
+<!-- Step 1: Upload -->
+<div class="card">
+  <div class="card-head"><span class="step">1</span> Upload Your Photo</div>
+
+  <div id="drop">
+    <div class="ico">🖼️</div>
+    <div class="drag-lbl">Drag &amp; drop an image here, or click to browse</div>
+    <div class="hint">JPG · PNG · WEBP · max 10 MB</div>
+    <input type="file" id="finput" accept="image/*"/>
+  </div>
+
+  <div id="prev-wrap">
+    <img id="prev-img" alt="preview"/>
+    <div id="prev-name"></div>
+  </div>
+
+  <div id="err"></div>
+
+  <div id="prog-wrap">
+    <div class="prog-steps" id="prog-steps">
+      <div class="prog-step" id="ps0"></div>
+      <div class="prog-step" id="ps1"></div>
+      <div class="prog-step" id="ps2"></div>
+      <div class="prog-step" id="ps3"></div>
+      <div class="prog-step" id="ps4"></div>
+      <div class="prog-step" id="ps5"></div>
+      <div class="prog-step" id="ps6"></div>
+    </div>
+    <div class="prog-bg"><div class="prog-fill" id="pfill"></div></div>
+    <div id="prog-label">Initialising…</div>
+  </div>
+
+  <button class="btn btn-primary" id="protect-btn" disabled>
+    🛡️ Cloak Identity
+  </button>
+</div>
+
+<!-- Results -->
+<div id="results">
+
+  <!-- Summary banner -->
+  <div class="summary-banner" id="sum-banner">
+    <div class="banner-stat">
+      <div class="big" id="sum-avg">—</div>
+      <div class="lbl">Avg AI Reduction</div>
+    </div>
+    <div class="banner-divider"></div>
+    <div class="banner-stat">
+      <div class="big" id="sum-ssim">—</div>
+      <div class="lbl">SSIM (quality)</div>
+    </div>
+    <div class="banner-divider"></div>
+    <div class="banner-stat">
+      <div class="big" id="sum-psnr">—</div>
+      <div class="lbl">PSNR (dB)</div>
+    </div>
+    <div class="banner-divider"></div>
+    <div class="banner-stat">
+      <div class="big" id="sum-time">—</div>
+      <div class="lbl">Processing time</div>
+    </div>
+    <div class="banner-claim">
+      The output image looks identical to humans.<br>
+      AI vision models extract a destabilised identity from the protected face region.
+    </div>
+  </div>
+
+  <!-- Step 2: Side-by-side -->
+  <div class="card">
+    <div class="card-head"><span class="step">2</span> Original vs Protected (click to enlarge)</div>
+    <div class="cmp-grid">
+      <div class="img-panel">
+        <div class="img-panel-hd"><span class="dot dot-b"></span> Original</div>
+        <img id="orig-img" alt="original" onclick="lb(this.src)"/>
+        <div class="img-panel-ft">Unmodified — AI extracts stable identity</div>
+      </div>
+      <div class="img-panel">
+        <div class="img-panel-hd"><span class="dot dot-p"></span> Protected (full image)</div>
+        <img id="prot-img" alt="protected" onclick="lb(this.src)"/>
+        <div class="img-panel-ft" id="prot-ft">AI identity consistency reduced</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Metrics -->
+  <div class="card">
+    <div class="card-head"><span class="step">3</span> Identity Consistency Reduction — per Model</div>
+    <div class="metrics-grid" id="mgrid"></div>
+    <div class="q-pills" id="qpills"></div>
+  </div>
+
+  <!-- Step 4: Download -->
+  <div class="card">
+    <div class="card-head"><span class="step">4</span> Download Protected Image</div>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px">
+      The protected image is the <strong style="color:var(--text)">full original resolution image</strong> with the adversarially cloaked face seamlessly blended in using Poisson seamless cloning. It looks visually identical to humans.
+    </p>
+    <div class="dl-row">
+      <a id="dl-btn" class="btn btn-success" href="#" download>⬇️ Download Protected Image</a>
+      <button class="btn btn-ghost" id="reset-btn">↩ Try Another Image</button>
+    </div>
+  </div>
+
+  <!-- Step 5: Gemini -->
+  <div class="card">
+    <div class="card-head">
+      <span class="step">5</span>
+      Gemini 2.5 Flash Evaluation
+      <span style="color:var(--muted);font-weight:400;font-size:.85rem">(Optional)</span>
+    </div>
+    <p style="color:var(--muted);font-size:.88rem;margin-bottom:4px">
+      Ask Gemini 2.5 Flash whether it can confirm the same person across original and protected images. Demonstrates AI ambiguity increase.
+    </p>
+    <div class="g-row">
+      <input type="password" id="gkey" placeholder="Paste Gemini API key (AIza…)"/>
+      <button class="btn btn-ghost" id="gbtn">🔍 Evaluate with Gemini</button>
+    </div>
+    <div id="gresult"><div id="gcontent" class="g-box"></div></div>
+  </div>
+
+</div><!-- /results -->
+</main>
+
+<footer>SafeUpload · Research Prototype · Defensive Identity Cloaking · Ethical Use Only</footer>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────
+let selFile = null, jobId = null;
+
+// ── DOM ──────────────────────────────────────────────────────────────
+const drop     = document.getElementById('drop');
+const finput   = document.getElementById('finput');
+const prevWrap = document.getElementById('prev-wrap');
+const prevImg  = document.getElementById('prev-img');
+const prevName = document.getElementById('prev-name');
+const btn      = document.getElementById('protect-btn');
+const errEl    = document.getElementById('err');
+const progWrap = document.getElementById('prog-wrap');
+const pfill    = document.getElementById('pfill');
+const pLabel   = document.getElementById('prog-label');
+const results  = document.getElementById('results');
+
+// ── File handling ─────────────────────────────────────────────────────
+function handleFile(f) {
+  if (!f || !f.type.startsWith('image/')) { showErr('Please select a valid image file.'); return; }
+  if (f.size > 10*1024*1024) { showErr('File too large — max 10 MB.'); return; }
+  selFile = f;
+  hideErr();
+  const r = new FileReader();
+  r.onload = e => {
+    prevImg.src = e.target.result;
+    prevName.textContent = f.name + ' — ' + (f.size/1024).toFixed(1) + ' KB';
+    prevWrap.style.display = 'block';
+    btn.disabled = false;
+  };
+  r.readAsDataURL(f);
+}
+finput.addEventListener('change', () => handleFile(finput.files[0]));
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); handleFile(e.dataTransfer.files[0]); });
+
+// ── Progress ──────────────────────────────────────────────────────────
+const STEPS = [
+  [5,  'Uploading image…'],
+  [15, 'Detecting face bounding box (MTCNN)…'],
+  [25, 'Building identity manifold (4 models)…'],
+  [38, 'Generating PCA-orthogonal pseudo-target…'],
+  [52, 'Running MCA cloaking attack — 50 steps × K=8 crops (this takes ~30–90s on GPU)…'],
+  [82, 'Blending protected face (Poisson seamless clone)…'],
+  [93, 'Evaluating identity consistency reduction…'],
+];
+let stepTimer = null;
+
+function startProgress() {
+  progWrap.style.display = 'block';
+  pfill.style.width = '0%';
+  // reset step indicators
+  for (let i=0;i<7;i++) {
+    const s = document.getElementById('ps'+i);
+    s.className = 'prog-step';
+  }
+  let idx = 0;
+  const tick = () => {
+    if (idx < STEPS.length) {
+      const [pct, txt] = STEPS[idx];
+      pfill.style.width = pct + '%';
+      pLabel.textContent = txt;
+      // mark steps
+      for (let i=0;i<=idx;i++) document.getElementById('ps'+i).className = 'prog-step done';
+      if (idx < STEPS.length-1) document.getElementById('ps'+(idx+1)).className = 'prog-step active';
+      idx++;
+      stepTimer = setTimeout(tick, idx < 4 ? 700 : idx < 5 ? 2000 : 8000);
+    }
+  };
+  tick();
+}
+function finishProgress(label) {
+  clearTimeout(stepTimer);
+  pfill.style.width = '100%';
+  for (let i=0;i<7;i++) document.getElementById('ps'+i).className = 'prog-step done';
+  pLabel.textContent = label || 'Done ✓';
+  setTimeout(() => { progWrap.style.display = 'none'; }, 1400);
+}
+
+// ── Main protect ──────────────────────────────────────────────────────
+btn.addEventListener('click', async () => {
+  if (!selFile) return;
+  btn.disabled = true; hideErr();
+  results.style.display = 'none';
+  startProgress();
+
+  const fd = new FormData();
+  fd.append('image', selFile);
+
+  try {
+    const resp = await fetch('/protect', { method: 'POST', body: fd });
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      showErr('Protection failed: ' + (data.error || resp.statusText));
+      btn.disabled = false; progWrap.style.display = 'none'; return;
+    }
+
+    finishProgress(`Done ✓  (${data.elapsed_sec}s on ${data.device.toUpperCase()})`);
+    jobId = data.job_id;
+    renderResults(data);
+  } catch(e) {
+    showErr('Network error: ' + e.message);
+    btn.disabled = false; progWrap.style.display = 'none';
+  }
+});
+
+// ── Render results ────────────────────────────────────────────────────
+function renderResults(data) {
+  // Images
+  document.getElementById('orig-img').src = 'data:image/jpeg;base64,' + data.original_b64;
+  document.getElementById('prot-img').src = 'data:image/jpeg;base64,' + data.protected_b64;
+  document.getElementById('prot-ft').textContent =
+    `Processed in ${data.elapsed_sec}s · ${data.device.toUpperCase()} · ε=8/255`;
+
+  // Per-model metric cards
+  const grid = document.getElementById('mgrid');
+  grid.innerHTML = '';
+  let ssims=[], psnrs=[], pcts=[];
+
+  for (const [mn, m] of Object.entries(data.metrics)) {
+    const pct = m.reduction_pct;
+    const cls = pct >= 40 ? 'good' : pct >= 20 ? 'medium' : 'bad';
+    ssims.push(m.ssim); psnrs.push(m.psnr); pcts.push(pct);
+    grid.innerHTML += `
+      <div class="metric-card">
+        <div class="mc-model">${mn}</div>
+        <div class="mc-row"><span class="mc-lbl">Original sim</span>
+          <span class="mc-val">${m.original_sim.toFixed(4)}</span></div>
+        <div class="mc-row"><span class="mc-lbl">Protected sim</span>
+          <span class="mc-val">${m.protected_sim.toFixed(4)}</span></div>
+        <div class="mc-row"><span class="mc-lbl">Reduction</span>
+          <span class="mc-val ${cls}">↓ ${pct.toFixed(1)}%</span></div>
+        <div class="red-bar-bg">
+          <div class="red-bar-fill" style="width:${Math.min(Math.max(pct,0),100)}%"></div>
+        </div>
+      </div>`;
+  }
+
+  // Summary banner
+  const avgPct  = avg(pcts);
+  const avgSSIM = avg(ssims);
+  const avgPSNR = avg(psnrs);
+  document.getElementById('sum-avg').textContent  = avgPct.toFixed(0) + '%';
+  document.getElementById('sum-ssim').textContent = avgSSIM.toFixed(3);
+  document.getElementById('sum-psnr').textContent = avgPSNR.toFixed(1);
+  document.getElementById('sum-time').textContent = data.elapsed_sec + 's';
+
+  // Quality pills
+  const qp = document.getElementById('qpills');
+  qp.innerHTML = `
+    <span class="pill ${avgSSIM>=0.85?'pill-g':'pill-a'}">SSIM ${avgSSIM.toFixed(4)} ${avgSSIM>=0.85?'✓':''}</span>
+    <span class="pill ${avgPSNR>=30?'pill-g':'pill-a'}">PSNR ${avgPSNR.toFixed(1)} dB ${avgPSNR>=30?'✓':''}</span>
+    <span class="pill pill-g">L∞ = 8/255</span>
+    <span class="pill pill-g">K=8 MCA crops</span>
+    <span class="pill pill-g">4-model ensemble</span>`;
+
+  // Download
+  const dlBtn = document.getElementById('dl-btn');
+  dlBtn.href = '/download/' + data.job_id;
+  dlBtn.setAttribute('download', `safeupload_protected_${data.job_id}.jpg`);
+
+  results.style.display = 'block';
+  setTimeout(() => results.scrollIntoView({ behavior:'smooth', block:'start' }), 100);
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────
+document.getElementById('reset-btn').addEventListener('click', () => {
+  selFile = null; jobId = null; finput.value = '';
+  prevWrap.style.display = 'none'; prevImg.src = '';
+  results.style.display = 'none'; btn.disabled = true;
+  document.getElementById('gresult').style.display = 'none';
+  document.getElementById('gkey').value = '';
+  hideErr();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ── Gemini ────────────────────────────────────────────────────────────
+document.getElementById('gbtn').addEventListener('click', async () => {
+  const key = document.getElementById('gkey').value.trim();
+  if (!key) { alert('Enter your Gemini API key first.'); return; }
+  if (!jobId) { alert('Run protection first.'); return; }
+  const gb = document.getElementById('gbtn');
+  gb.textContent = '⏳ Querying Gemini 2.5 Flash…'; gb.disabled = true;
+  try {
+    const r = await fetch('/gemini_eval', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ job_id:jobId, api_key:key }),
+    });
+    const d = await r.json();
+    const gc = document.getElementById('gcontent');
+    document.getElementById('gresult').style.display = 'block';
+    if (d.error) { gc.textContent = 'Error: ' + d.error; return; }
+    let txt = '=== Gemini 2.5 Flash Identity Consistency Evaluation ===\n\n';
+    for (const [k,v] of Object.entries(d.gemini_results||{})) {
+      if (typeof v==='object' && v.prompt) {
+        txt += `📌 ${v.prompt}\n`;
+        txt += `  [Original]   ${(v.original?.response||'').slice(0,400)}\n`;
+        txt += `  [Protected]  ${(v.protected?.response||'').slice(0,400)}\n\n`;
+      }
+    }
+    gc.textContent = txt || JSON.stringify(d.gemini_results, null, 2);
+  } catch(e) {
+    document.getElementById('gcontent').textContent = 'Error: ' + e.message;
+    document.getElementById('gresult').style.display = 'block';
+  }
+  gb.textContent = '🔍 Evaluate with Gemini'; gb.disabled = false;
+});
+
+// ── Lightbox ──────────────────────────────────────────────────────────
+function lb(src) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lb').classList.add('show');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function showErr(m) { errEl.textContent = '⚠ ' + m; errEl.style.display = 'block'; }
+function hideErr()  { errEl.style.display = 'none'; }
+function avg(a)     { return a.length ? a.reduce((s,v)=>s+v,0)/a.length : 0; }
+</script>
+</body>
+</html>

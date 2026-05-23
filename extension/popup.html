@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SafeUpload</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; width: 320px; padding: 15px; background: #0f172a; color: #f8fafc; text-align: center; }
+    h2 { margin-top: 0; color: #8b5cf6; font-size: 18px; margin-bottom: 15px; }
+    #upload-area { border: 2px dashed #334155; padding: 20px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-bottom: 15px; background: #1e293b; }
+    #upload-area:hover { border-color: #8b5cf6; background: #293548; }
+    #file-input { display: none; }
+    .btn { background: #8b5cf6; color: white; border: none; padding: 10px 15px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; display: none; transition: 0.2s;}
+    .btn:hover { background: #7c3aed; }
+    #preview-img, #result-img { max-width: 100%; border-radius: 6px; margin-top: 10px; display: none; }
+    #status { margin-top: 10px; font-size: 13px; color: #94a3b8; }
+    .loader { border: 3px solid #1e293b; border-top: 3px solid #8b5cf6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 10px auto; display: none; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <h2>🛡️ SafeUpload Shield</h2>
+  <div id="upload-area">
+    <p id="upload-text" style="color: #94a3b8; font-size: 14px;">Click here to select a photo</p>
+    <input type="file" id="file-input" accept="image/jpeg, image/png, image/webp">
+    <img id="preview-img" alt="Preview">
+  </div>
+  
+  <button id="cloak-btn" class="btn">Cloak Identity</button>
+  
+  <div class="loader" id="loader"></div>
+  <p id="status"></p>
+  
+  <img id="result-img" alt="Protected Result">
+  <button id="download-btn" class="btn" style="background: #10b981; margin-top: 15px;">💾 Download Protected Image</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>
