@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "SafeUpload Shield",
+  "version": "2.0.0",
+  "description": "Protect your identity by cloaking your photos before uploading them to social media.",
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "SafeUpload"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content.ts"]
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "downloads",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:7860/*",
+    "http://localhost:7860/*"
+  ]
+}

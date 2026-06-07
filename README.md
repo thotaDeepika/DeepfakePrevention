@@ -1,4 +1,4 @@
-# SafeUpload: Transferable Identity Cloaking for Public Images
+# 🛡️ SafeUpload: Transferable Identity Cloaking for Public Images
 
 > **Research Prototype** | Defensive Privacy Tool | Ethical Use Only
 
@@ -6,71 +6,98 @@ SafeUpload applies subtle transferable adversarial perturbations to face images 
 
 ---
 
-## Research Claim
-
-> "Transferable adversarial identity cloaking can reduce the consistency and reliability of AI-based face representation systems across multiple images and models while preserving human-recognizable appearance."
-
----
-
-## Quick Start (Google Colab)
-
-1. Open `SafeUpload_Colab.ipynb` in Colab
-2. Set Runtime → **GPU** (T4 or better)
-3. Run **Cell 1** to install dependencies
-4. Run **Cell 2** to upload and extract this project ZIP
-5. Run **Cell 3** to verify GPU
-6. Run **Cell 4** to upload your face images ZIP (5–6 images of same person)
-7. Run remaining cells sequentially
+## 🚀 What's New in v2.0
+SafeUpload has evolved from a Python research script into a full-stack, production-ready privacy suite:
+- **Premium Web Dashboard:** A responsive React + Vite web application with interactive data visualization (Recharts).
+- **Asynchronous Backend:** Flask + Celery + Redis architecture for handling heavy GPU cloaking processes without freezing the server.
+- **Browser Extension:** A React-based Chrome extension that automatically injects a "Cloak with SafeUpload" button into social media file uploads.
+- **Dockerized:** Easily deploy the entire application suite locally via Docker Compose.
 
 ---
 
-## Project Structure
+## ⚙️ How to Run
+
+There are two ways to run the SafeUpload backend and web app: using **Docker** (Recommended) or **Manually**.
+
+### Method 1: The Easy Way (Docker Compose)
+If you have Docker Desktop installed, this is the easiest way to run the entire stack.
+
+1. Clone the repository and navigate to the project root:
+   ```bash
+   cd safeupload
+   ```
+2. Build and start all services (Frontend, Backend, Celery Worker, Redis Broker):
+   ```bash
+   docker-compose up --build
+   ```
+3. Once running, open your browser:
+   - **Marketing & Web App:** `http://localhost:3000`
+   - **Backend API:** `http://localhost:7860`
+
+*(To stop the server, press `Ctrl+C` or run `docker-compose down`).*
+
+### Method 2: Manual Local Setup (Windows/Linux)
+If you prefer running the servers manually, you will need 3 separate terminal windows:
+
+**1. Start the Flask Backend:**
+```bash
+cd safeupload
+pip install -r requirements.txt
+python app/app.py
+```
+
+**2. Start the Celery Worker (Requires a local Redis server running on port 6379):**
+```bash
+cd safeupload
+celery -A app.celery_worker.celery_app worker --loglevel=info -P solo
+```
+
+**3. Start the React Web App:**
+```bash
+cd safeupload/web
+npm install
+npm run dev
+```
+
+---
+
+## 🧩 How to Install the Browser Extension
+
+The SafeUpload browser extension allows you to cloak your images directly from Twitter, Facebook, or any other website.
+
+1. Build the extension:
+   ```bash
+   cd safeupload/extension-v2
+   npm install
+   npm run build
+   ```
+2. Open Google Chrome (or Edge/Brave) and go to `chrome://extensions/`.
+3. Turn on **Developer mode** (top right corner).
+4. Click **Load unpacked** (top left corner).
+5. Select the `safeupload/extension-v2/dist` folder.
+6. The extension is now active! Go to any website with an upload form, and you will see a `🛡️ Cloak with SafeUpload` button magically appear.
+
+---
+
+## 📁 Project Structure
 
 ```
 safeupload/
-├── SafeUpload_Colab.ipynb       ← Main entry point
-├── requirements.txt
-├── pipeline.py                  ← Full pipeline orchestrator
+├── app/                         ← Flask API & Celery background workers
+├── web/                         ← React + Vite Web Application & Dashboard
+├── extension-v2/                ← React-based Browser Extension & Content Scripts
+├── docker-compose.yml           ← Unified Docker Orchestration
 │
-├── attacks/
-│   ├── safeupload_attack.py     ← Main attack (used by notebook)
-│   └── mca_attack.py            ← MCA-based identity cloaking core
-│
-├── models/
-│   ├── facenet.py               ← FaceNet (512-d)
-│   ├── arcface.py               ← ArcFace (512-d, insightface)
-│   ├── clip_b16.py              ← CLIP ViT-B/16 (512-d)
-│   └── clip_l14.py              ← CLIP ViT-L/14 (768-d)
-│
-├── losses/
-│   └── identity_diversion_loss.py   ← Directional identity diversion loss
-│
-├── utils/
-│   ├── preprocessing.py         ← Face detection & alignment
-│   ├── identity_manifold.py     ← Identity manifold construction
-│   ├── pseudo_target.py         ← Synthetic pseudo-target generation
-│   ├── image_transforms.py      ← MCA crops & ATA augmentations
-│   ├── face_utils.py            ← Face detection helpers
-│   └── io_utils.py              ← ZIP loading, CSV export
-│
-├── evaluation/
-│   ├── identity_evaluator.py    ← Pairwise similarity evaluation
-│   └── vision_eval.py           ← Gemini ambiguity evaluation
-│
-├── visualization/
-│   ├── heatmaps.py              ← Similarity heatmaps
-│   ├── embedding_plots.py       ← PCA/t-SNE/UMAP scatter
-│   ├── dashboard.py             ← Summary dashboard
-│   ├── heatmap_viz.py           ← (pipeline viz)
-│   ├── embedding_viz.py         ← (pipeline viz)
-│   └── comparison_viz.py        ← (pipeline viz)
-│
-└── outputs/                     ← All results saved here
+├── attacks/                     ← ML: MCA-based identity cloaking core
+├── models/                      ← ML: FaceNet, ArcFace, CLIP models
+├── losses/                      ← ML: Identity diversion loss functions
+├── utils/                       ← ML: Data, preprocessing, face detection
+└── SafeUpload_Colab.ipynb       ← Original Google Colab notebook
 ```
 
 ---
 
-## Algorithm: MCA-Inspired Identity Cloaking
+## 🧠 The Algorithm: MCA-Inspired Identity Cloaking
 
 Adapted from the M-Attack-V2 paper ("Pushing the Frontier of Black-Box LVLM Attacks via Fine-Grained Detail Targeting"):
 
@@ -84,15 +111,6 @@ Adapted from the M-Attack-V2 paper ("Pushing the Frontier of Black-Box LVLM Atta
 | **Directional Identity Diversion** | Push embeddings away from identity center toward synthetic pseudo-target |
 | **Visual Quality Preservation** | Gaussian smoothing + edge-aware masking + TV regularization |
 
-### Loss Function
-
-```
-L = sim(adv_emb, identity_center)         # reduce identity similarity
-  - λ₁ · sim(adv_emb, pseudo_target)      # divert toward synthetic target
-  + λ₂ · TV(δ)                            # smoothness
-  + λ₃ · MSE(x_adv, x_orig)              # perceptual quality
-```
-
 ### Pseudo-Target Generation
 
 No real people are targeted. Synthetic targets are generated via:
@@ -102,32 +120,7 @@ No real people are targeted. Synthetic targets are generated via:
 
 ---
 
-## Attack Settings
-
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `eps` | 8/255 | L-∞ perturbation budget |
-| `steps` | 50 | Optimization iterations |
-| `K` | 8 | MCA crops per step |
-| `eot` | 3 | Expectation over transformations |
-| `alpha` | 1.5/255 | Adam step size |
-| `lambda1` | 0.7 | Pseudo-target weight |
-| `lambda2` | 0.1 | Smoothness weight |
-| `lambda3` | 0.1 | Perceptual quality weight |
-
----
-
-## Expected Results
-
-| Metric | Original | Protected |
-|--------|----------|-----------|
-| Pairwise cosine similarity | 0.85–0.95 | 0.45–0.65 |
-| SSIM | — | > 0.85 |
-| PSNR | — | > 30 dB |
-
----
-
-## Ethical Guidelines
+## ⚖️ Ethical Guidelines
 
 ✅ **Allowed**:
 - Protecting your own photos before public upload
@@ -144,5 +137,4 @@ No real people are targeted. Synthetic targets are generated via:
 ## Citation
 
 This work adapts techniques from:
-
 > Zhao et al., "Pushing the Frontier of Black-Box LVLM Attacks via Fine-Grained Detail Targeting", MBZUAI VILA Lab, 2026.

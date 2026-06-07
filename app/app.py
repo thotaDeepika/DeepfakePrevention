@@ -287,6 +287,40 @@ def gemini_eval():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+@app.route("/protect_async", methods=["POST"])
+def protect_async():
+    if "image" not in request.files:
+        return jsonify({"error": "No image field in request"}), 400
+    file = request.files["image"]
+    
+    job_id = str(uuid.uuid4())[:8]
+    temp_path = str(UPLOAD_DIR / f"{job_id}_{file.filename}")
+    file.save(temp_path)
+    
+    try:
+        from app.tasks import run_protection_task
+        task = run_protection_task.delay(job_id, temp_path)
+        return jsonify({"job_id": job_id, "task_id": task.id}), 202
+    except Exception as e:
+        return jsonify({"error": "Celery task failed to start. Ensure Redis and Celery worker are running."}), 500
+
+@app.route("/status/<task_id>")
+def task_status(task_id):
+    from app.tasks import run_protection_task
+    task = run_protection_task.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        response = {'state': task.state, 'status': 'Pending...'}
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'status': task.info.get('message', '') if isinstance(task.info, dict) else str(task.info)
+        }
+        if 'result' in task.info if isinstance(task.info, dict) else False:
+            response['result'] = task.info['result']
+    else:
+        response = {'state': task.state, 'status': str(task.info)}
+    return jsonify(response)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))
